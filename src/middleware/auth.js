@@ -1,6 +1,7 @@
 const jwt = require('jsonwebtoken');
+const pool = require('../config/db');
 
-function authenticateToken(req, res, next) {
+async function authenticateToken(req, res, next) {
   const authorization = req.get('authorization');
   const [scheme, token] = authorization ? authorization.split(' ') : [];
 
@@ -12,30 +13,36 @@ function authenticateToken(req, res, next) {
     const payload = jwt.verify(token, process.env.JWT_SECRET);
     if (
       typeof payload === 'string' ||
-      typeof payload.sub !== 'string' ||
-      typeof payload.rol !== 'string'
+      typeof payload.sub !== 'string'
     ) {
       return res.status(401).json({ error: 'Token inválido.' });
     }
 
-    req.user = {
-      id: Number(payload.sub),
-      nombre: payload.nombre,
-      correo: payload.correo,
-      rol: payload.rol,
-    };
+    const id = Number(payload.sub);
 
-    if (!Number.isSafeInteger(req.user.id) || req.user.id <= 0) {
+    if (!Number.isSafeInteger(id) || id <= 0) {
       return res.status(401).json({ error: 'Token inválido.' });
     }
 
+    const { rows } = await pool.query(
+      `SELECT id, nombre, correo, rol
+       FROM usuarios
+       WHERE id = $1 AND activo = TRUE`,
+      [id],
+    );
+    if (rows.length === 0) {
+      return res.status(401).json({ error: 'Usuario inactivo o inexistente.' });
+    }
+
+    req.user = rows[0];
     return next();
   } catch (error) {
     if (error instanceof jwt.TokenExpiredError || error instanceof jwt.JsonWebTokenError) {
       return res.status(401).json({ error: 'Token inválido o expirado.' });
     }
 
-    return next(error);
+    console.error('Token authentication failed:', error);
+    return res.status(500).json({ error: 'No fue posible validar la autenticación.' });
   }
 }
 

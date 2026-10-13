@@ -7,6 +7,10 @@ const pool = require('./config/db');
 const { router: authRoutes, loginRateLimit } = require('./routes/auth');
 const medicationRoutes = require('./routes/medicamentos');
 const batchRoutes = require('./routes/lotes');
+const saleRoutes = require('./routes/ventas');
+const inventoryRoutes = require('./routes/inventario');
+const auditRoutes = require('./routes/auditoria');
+const userRoutes = require('./routes/usuarios');
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -22,6 +26,10 @@ app.use(express.json());
 app.use('/api/auth', authRoutes);
 app.use('/api/medicamentos', medicationRoutes);
 app.use('/api/lotes', batchRoutes);
+app.use('/api/ventas', saleRoutes);
+app.use('/api/inventario', inventoryRoutes);
+app.use('/api/auditoria', auditRoutes);
+app.use('/api/usuarios', userRoutes);
 
 app.get('/health', (req, res) => {
   res.status(200).json({ status: 'ok' });
